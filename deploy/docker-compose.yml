@@ -1,0 +1,13 @@
+services:
+  point-service:
+    image: 267837905230.dkr.ecr.ap-northeast-2.amazonaws.com/board-system/user-service-nest:${IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    # environment:
+    #   SERVER_PORT: ${SERVER_PORT}
+    #   SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+    #   SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+    #   SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
