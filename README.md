@@ -1,99 +1,139 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# User Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+사용자 생성, 인증(JWT 발급), 활동 점수 관리를 담당하는 서비스입니다.  
+Event-Driven 구조에서 사용자 도메인의 Source of Truth 역할을 수행합니다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 1. 역할 (Responsibility)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- 회원가입
+- 로그인 (JWT 발급)
+- 사용자 조회 (Internal API)
+- 활동 점수 관리
+- 사용자 관련 이벤트 발행 및 소비
 
-## Project setup
+---
 
-```bash
-$ pnpm install
+## 2. 회원가입 처리 흐름
+
+1. 사용자 정보 DB 저장
+2. Point Service 동기 호출 → 초기 포인트 1000 지급
+3. `user.signed-up` 이벤트 발행
+
+```text
+Client → Gateway → User Service
+                        │
+                        ├─ save user
+                        ├─ call point-service (동기)
+                        └─ publish user.signed-up (Kafka)
 ```
 
-## Compile and run the project
+### 설계 의도
 
-```bash
-# development
-$ pnpm run start
+- 포인트 지급은 회원가입 성공의 일부로 간주하여 동기 처리
+- 이후 확장 가능한 처리를 위해 이벤트 발행
+- Board Service는 해당 이벤트를 구독하여 Read Model을 구성
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
+## 3. 로그인 및 JWT 발급
+
+- 이메일/비밀번호 기반 인증
+- JWT subject에 `userId` 저장
+- Gateway에서 JWT 검증 후 내부 서비스에 `X-User-Id` 헤더 전달
+
+### 현재 구현 특징
+
+- 비밀번호는 평문 비교 방식 (학습 목적의 단순 구현)
+- 토큰 만료 시간 및 추가 Claim 없음
+
+운영 환경에서는 다음 보완이 가능합니다:
+
+- BCrypt 기반 비밀번호 암호화
+- JWT 만료 시간(exp) 설정
+- Refresh Token 구조 도입
+
+---
+
+## 4. 활동 점수 처리
+
+### 이벤트 기반 점수 적립
+
+`board.created` 이벤트를 소비하여 활동 점수를 증가시킵니다.
+
+```text
+Board Service → Kafka(board.created)
+                          ↓
+                    User Service (Consumer)
+                          ↓
+                    addActivityScore()
 ```
 
-## Run tests
+### 설계 특징
+
+- 게시글 작성은 User Service를 직접 호출하지 않음
+- 이벤트 기반 비동기 처리로 결합도 감소
+- 즉시 반영이 필요하지 않은 로직은 비동기 처리
+
+### 멱등성 고려
+
+Kafka는 at-least-once 전달 모델이므로  
+동일 이벤트가 중복 소비될 수 있습니다.
+
+현재는 단순 구현 구조이며,  
+운영 환경에서는 이벤트 ID 기반 중복 방지 전략을 적용할 수 있습니다.
+
+---
+
+## 5. 트랜잭션 처리
+
+- `signUp()` → `@Transactional`
+- `addActivityScore()` → `@Transactional`
+- `login()` → `@Transactional`
+
+현재 구조는 단일 인스턴스 환경을 가정한 기본 트랜잭션 처리입니다.
+
+---
+
+## 6. 내부 API
+
+Internal ALB를 통해서만 접근합니다.
+
+### 사용자 조회
+GET `/internal/users/{userId}`
+
+GET `/internal/users?ids=1,2,3`
+
+### 활동 점수 적립
+POST `/internal/users/activity-score/add`
+
+---
+
+## 7. 이벤트 목록
+
+### 발행
+- `user.signed-up`
+
+### 소비
+- `board.created`
+
+---
+
+## 8. 기술 스택
+
+- Spring Boot
+- Spring Data JPA
+- MySQL (RDS)
+- Kafka (MSK)
+- JWT (jjwt)
+
+---
+
+## 9. Local 실행
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+docker-compose up -d
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+기본 포트: 8080
