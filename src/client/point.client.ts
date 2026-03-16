@@ -8,7 +8,7 @@ export class PointClient {
 
   async addPoints(userId: bigint, amount: number): Promise<void> {
     const body = {
-      userId,
+      userId: userId.toString(),
       amount,
     };
 
