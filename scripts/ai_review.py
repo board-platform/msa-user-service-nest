@@ -7,6 +7,7 @@ client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 repo = os.environ["GITHUB_REPOSITORY"]
 token = os.environ["GITHUB_TOKEN"]
 pr_number = os.environ["PR_NUMBER"]
+commit_id = os.environ.get("PR_HEAD_SHA")
 
 headers = {
     "Authorization": f"Bearer {token}",
@@ -14,7 +15,7 @@ headers = {
 }
 
 # GitHub PR files API로 변경된 파일 목록과 patch(diff) 가져오기
-files_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files"
+files_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files?per_page=100"
 files_response = requests.get(files_url, headers=headers)
 
 if files_response.status_code != 200:
@@ -64,16 +65,19 @@ for file in files_data:
                     4. 코드 가독성 및 유지보수성
                     5. NestJS / TypeScript 관점의 개선 사항
 
-                    출력 형식 (반드시 지킬 것):
+                    출력 형식 (JSON 배열로 반환):
 
-                    ### 🔍 주요 문제
-                    - 발견된 문제를 bullet point로 설명
+                    [
+                      {{
+                        "line": <문제가 발생한 라인 번호>,
+                        "comment": "<리뷰 내용>"
+                      }}
+                    ]
 
-                    ### ⚠️ 개선 제안
-                    - 코드 개선 방법 제안
-
-                    ### 👍 긍정적인 부분
-                    - 좋은 코드가 있다면 간단히 언급
+                    주의사항:
+                    - 문제가 있는 라인만 반환합니다.
+                    - 문제가 없다면 빈 배열 [] 을 반환합니다.
+                    - line 값은 diff의 변경 라인을 기준으로 작성합니다.
 
                     다음은 Pull Request에서 변경된 파일입니다.
 
@@ -89,12 +93,38 @@ for file in files_data:
     )
 
     review = response.content[0].text if response.content else "리뷰 생성 실패"
-    reviews.append(f"### 📄 {filename}\n{review}")
+
+    import json
+
+    try:
+        line_reviews = json.loads(review)
+    except Exception:
+        # JSON 파싱 실패 시 일반 리뷰로 fallback
+        reviews.append(f"### 📄 {filename}\n{review}")
+        continue
+
+    for item in line_reviews:
+        line = item.get("line")
+        comment = item.get("comment")
+
+        if not line or not comment:
+            continue
+
+        review_comment_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
+
+        review_data = {
+            "body": comment,
+            "commit_id": commit_id,
+            "path": filename,
+            "position": line,
+        }
+
+        requests.post(review_comment_url, headers=headers, json=review_data)
 
 review_text = "\n\n".join(reviews) if reviews else "리뷰할 변경 사항이 없습니다."
 
 headers = {
-    "Authorization": f"Bearer {token}",
+    "Authorization": f"token {token}",
     "Accept": "application/vnd.github+json"
 }
 
