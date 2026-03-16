@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 
 echo "===== deploy start ====="
-SERVICE_NAME=${SERVICE_NAME:-user-service}
+SERVICE_NAME=${SERVICE_NAME:-user-service-nest}
 
 # 1. 서비스 디렉토리 이동
 mkdir -p /home/ubuntu/${SERVICE_NAME}
@@ -27,7 +27,7 @@ aws ssm get-parameters-by-path \
   --output text \
 | awk '{split($1,a,"/"); print a[length(a)]"="$2}' > .env
 
-# user-service 전용
+# user-service-nest 전용
 aws ssm get-parameters-by-path \
   --region ap-northeast-2 \
   --path /prod/board-system/${SERVICE_NAME} \
