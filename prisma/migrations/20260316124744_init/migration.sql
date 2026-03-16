@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "users" (
-    "user_id" BIGSERIAL NOT NULL,
+    "user_id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "password" TEXT NOT NULL,

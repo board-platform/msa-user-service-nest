@@ -1,4 +1,4 @@
 export class UserSignedUpEvent {
-    userId: bigint
+    userId: number
     name: string
   }

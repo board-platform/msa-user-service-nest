@@ -1,5 +1,5 @@
 export class UserResponseDto {
-    userId: bigint
+    userId: number
     email: string
     name: string
 }

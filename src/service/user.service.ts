@@ -37,7 +37,7 @@ export class UserService {
         await this.kafkaService.send('user.signed-up', event);
     }
 
-    async getUser(userId: bigint): Promise<UserResponseDto> {
+    async getUser(userId: number): Promise<UserResponseDto> {
         const user = await this.prisma.user.findUnique({ where: { userId } });
 
         if (!user) {
@@ -51,7 +51,7 @@ export class UserService {
         }
     }
 
-    async getUsersByIds(ids: bigint[]): Promise<UserResponseDto[]> {
+    async getUsersByIds(ids: number[]): Promise<UserResponseDto[]> {
         const users = await this.prisma.user.findMany({ where: { userId: { in: ids} } });
 
         return users.map((user) => ({
@@ -94,7 +94,7 @@ export class UserService {
         }
 
         const token = jwt.sign(
-            { sub: user.userId.toString() },
+            { sub: user.userId },
             process.env.JWT_SECRET as string
         );
 

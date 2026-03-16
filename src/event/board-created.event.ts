@@ -1,3 +1,3 @@
 export class BoardCreatedEvent {
-    userId: bigint
+    userId: number
 }

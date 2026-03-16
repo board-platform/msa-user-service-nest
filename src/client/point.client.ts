@@ -6,9 +6,9 @@ import { firstValueFrom } from 'rxjs';
 export class PointClient {
   constructor(private readonly httpService: HttpService) {}
 
-  async addPoints(userId: bigint, amount: number): Promise<void> {
+  async addPoints(userId: number, amount: number): Promise<void> {
     const body = {
-      userId: userId.toString(),
+      userId,
       amount,
     };
 
