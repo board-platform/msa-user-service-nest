@@ -27,6 +27,7 @@ export class UserService {
             }
         });
 
+        // TODO: 이벤트 구조로 변경 예정
         await this.pointClient.addPoints(savedUser.userId, 1000);
 
         const event: UserSignedUpEvent = new UserSignedUpEvent();
