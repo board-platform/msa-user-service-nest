@@ -24,6 +24,11 @@ if files_response.status_code != 200:
 
 files_data = files_response.json()
 
+# PR 변경 파일이 너무 많으면 AI 리뷰 스킵 (비용 폭주 방지)
+if len(files_data) > 5:
+    print(f"PR changed files: {len(files_data)}, skip AI review to avoid cost explosion")
+    exit(0)
+
 reviews = []
 
 for file in files_data:
@@ -41,11 +46,11 @@ for file in files_data:
         continue
 
     # 토큰 사용량이 과도해지는 것을 방지하기 위해 diff 길이 제한
-    file_diff = file_diff[:4000]
+    file_diff = file_diff[:1500]
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=800,
+        model="claude-haiku",
+        max_tokens=300,
         messages=[
             {
                 "role": "user",
