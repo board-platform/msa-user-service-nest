@@ -49,8 +49,9 @@ for file in files_data:
     file_diff = file_diff[:1500]
 
     response = client.messages.create(
-        model="claude-haiku",
+        model="claude-3-haiku-20240307",
         max_tokens=300,
+        temperature=0,
         messages=[
             {
                 "role": "user",
