@@ -9,12 +9,12 @@ export class UserInternalController {
 
   @Get(':userId')
   async getUser(@Param('userId') userId: string): Promise<UserResponseDto> {
-    return this.userService.getUser(BigInt(userId));
+    return this.userService.getUser(+userId);
   }
 
   @Get()
   async getUsersByIds(@Query('ids') ids: string[]): Promise<UserResponseDto[]> {
-    const parsedIds = ids.map((id) => BigInt(id));
+    const parsedIds = ids.map((id) => +id);
     return this.userService.getUsersByIds(parsedIds);
   }
 

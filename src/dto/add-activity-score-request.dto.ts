@@ -1,4 +1,4 @@
 export class AddActivityScoreRequestDto {
-    userId: bigint
+    userId: number
     score: number
   }
