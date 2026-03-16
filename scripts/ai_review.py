@@ -1,32 +1,42 @@
 import os
-import subprocess
 import requests
 from anthropic import Anthropic
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
+repo = os.environ["GITHUB_REPOSITORY"]
+token = os.environ["GITHUB_TOKEN"]
+pr_number = os.environ["PR_NUMBER"]
 
-# GitHub Actions 환경에서 diff 비교가 가능하도록 base 브랜치(master)를 fetch
-subprocess.run(["git", "fetch", "origin", "master"], check=True)
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Accept": "application/vnd.github+json"
+}
 
-# Pull Request에서 변경된 파일 목록 가져오기
-files = subprocess.check_output(
-    ["git", "diff", "--name-only", "origin/master...HEAD"]
-).decode().splitlines()
+# GitHub PR files API로 변경된 파일 목록과 patch(diff) 가져오기
+files_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files"
+files_response = requests.get(files_url, headers=headers)
+
+if files_response.status_code != 200:
+    print("PR 파일 목록을 가져오지 못했습니다:", files_response.text)
+    exit(1)
+
+files_data = files_response.json()
 
 reviews = []
 
-for file in files:
+for file in files_data:
+    filename = file["filename"]
+    file_diff = file.get("patch")
 
-    if not file.endswith((".ts", ".js")):
+    # patch가 없는 경우 (binary 파일 등) 스킵
+    if not file_diff:
         continue
 
-    # 현재 파일에 대한 git diff 가져오기
-    file_diff = subprocess.check_output(
-        ["git", "diff", "origin/master...HEAD", "--", file]
-    ).decode()
+    if not filename.endswith((".ts", ".js", ".tsx")):
+        continue
 
-    if not file_diff.strip():
+    if "test" in filename or "spec" in filename:
         continue
 
     # 토큰 사용량이 과도해지는 것을 방지하기 위해 diff 길이 제한
@@ -68,7 +78,7 @@ for file in files:
                     다음은 Pull Request에서 변경된 파일입니다.
 
                     파일:
-                    {file}
+                    {filename}
 
                     아래는 해당 파일의 git diff 입니다.
 
@@ -79,15 +89,9 @@ for file in files:
     )
 
     review = response.content[0].text if response.content else "리뷰 생성 실패"
-    reviews.append(f"### 📄 {file}\n{review}")
+    reviews.append(f"### 📄 {filename}\n{review}")
 
 review_text = "\n\n".join(reviews) if reviews else "리뷰할 변경 사항이 없습니다."
-
-repo = os.environ["GITHUB_REPOSITORY"]
-token = os.environ["GITHUB_TOKEN"]
-pr_number = os.environ["PR_NUMBER"]
-
-url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
 
 headers = {
     "Authorization": f"Bearer {token}",
