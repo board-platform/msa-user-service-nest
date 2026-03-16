@@ -12,6 +12,7 @@ COPY . .
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm prisma generate
 
 RUN pnpm build
+RUN ls -R dist
 RUN pnpm prune --prod
 
 FROM node:20-alpine
