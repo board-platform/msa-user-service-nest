@@ -8,7 +8,9 @@ export const kafkaProducerProvider: Provider = {
     useFactory: async (configService: ConfigService) => {
         const kafka = new Kafka({
             clientId: 'user-service',
-            brokers: configService.get<string>('KAFKA_BOOTSTRAP_SERVERS')?.split(',') ?? ['localhost:9092']
+            brokers: configService
+            .get<string>('KAFKA_BOOTSTRAP_SERVERS')
+            ?.split(',') ?? ['localhost:9092'],
         });
 
         const producer = kafka.producer();

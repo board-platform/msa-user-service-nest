@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { PointClient } from "src/client/point.client";
 import { AddActivityScoreRequestDto } from "src/dto/add-activity-score-request.dto";
 import { LoginRequestDto } from "src/dto/login-request.dto";
 import { LoginResponseDto } from "src/dto/login-response.dto";
@@ -14,7 +13,6 @@ import * as jwt from "jsonwebtoken";
 export class UserService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly pointClient: PointClient,
         private readonly kafkaService: KafkaService,
     ) {}
     
@@ -26,9 +24,6 @@ export class UserService {
                 password: dto.password
             }
         });
-
-        // TODO: 이벤트 구조로 변경 예정
-        await this.pointClient.addPoints(savedUser.userId, 1000);
 
         const event: UserSignedUpEvent = new UserSignedUpEvent();
         event.userId = savedUser.userId;
