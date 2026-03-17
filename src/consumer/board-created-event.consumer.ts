@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { AddActivityScoreRequestDto } from "src/dto/add-activity-score-request.dto";
 import { BoardCreatedEvent } from "src/event/board-created.event";
-import { UserService } from "src/service/user.service";
+import { UserService } from "src/user/user.service";
 
 @Injectable()
 export class BoardCreatedEventConsumer {

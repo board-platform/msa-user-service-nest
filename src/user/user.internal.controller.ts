@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode, Get, Param, Query } from '@nestjs/common';
 import { AddActivityScoreRequestDto } from 'src/dto/add-activity-score-request.dto';
 import { UserResponseDto } from 'src/dto/user-response.dto';
-import { UserService } from 'src/service/user.service';
+import { UserService } from 'src/user/user.service';
 
 @Controller('internal/users')
 export class UserInternalController {
