@@ -94,7 +94,7 @@ export class UserService {
         }
 
         const token = jwt.sign(
-            { sub: user.userId },
+            { sub: user.userId.toString() },
             process.env.JWT_SECRET as string
         );
 
