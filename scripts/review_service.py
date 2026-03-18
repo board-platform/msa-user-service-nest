@@ -6,7 +6,7 @@ def review_file_with_ai(client, filename, file_diff):
         try:
             response = client.messages.create(
                 model="claude-3-haiku-20240307",
-                max_tokens=300,
+                max_tokens=800,
                 temperature=0,
                 messages=[
                     {
@@ -34,6 +34,8 @@ def review_file_with_ai(client, filename, file_diff):
                                 "comment": "<리뷰 내용>"
                             }}
                             ]
+                            (출력은 반드시 완전한 JSON이어야 하며, 중간에 끊기면 안 됩니다.
+                            JSON이 깨지면 안 됩니다.)
 
                             주의사항:
                             - 문제가 있는 라인만 반환
