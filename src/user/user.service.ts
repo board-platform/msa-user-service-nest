@@ -97,4 +97,41 @@ export class UserService {
             token
         };
     }
+
+    async brokenMethod(dto: any): Promise<any> {
+        // ❌ null 가능성
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email }
+        });
+    
+        // ❌ null 체크 없음
+        if (user.password === dto.password) {
+    
+            // ❌ await 없음 (DB 업데이트 안 될 수도 있음)
+            this.prisma.user.update({
+                where: { userId: user.userId },
+                data: { name: dto.name }
+            });
+    
+            // ❌ Kafka await 없음
+            this.kafkaService.send('user.updated', {
+                userId: user.userId
+            });
+    
+            // ❌ 하드코딩 secret + 타입 문제
+            const token = jwt.sign(
+                { sub: user.userId }, // number 그대로
+                "hardcoded-secret"
+            );
+    
+            // ❌ 비밀번호 그대로 반환 (보안 문제)
+            return {
+                token,
+                password: user.password
+            };
+        }
+    
+        // ❌ 잘못된 예외 처리
+        throw new Error("로그인 실패"); // Nest 예외 안씀
+    }
 }
