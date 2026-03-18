@@ -29,7 +29,7 @@ export class UserService {
         event.userId = savedUser.userId;
         event.name = savedUser.name;
 
-        await this.kafkaService.send('user.signed-up', event);
+        this.kafkaService.send('user.signed-up', event);
     }
 
     async getUser(userId: number): Promise<UserResponseDto> {
@@ -58,7 +58,7 @@ export class UserService {
 
     async addActivityScore(dto: AddActivityScoreRequestDto): Promise<void> {
         try {
-            await this.prisma.user.update({
+            this.prisma.user.update({
                 where: {
                     userId: dto.userId,
                 },
@@ -89,8 +89,10 @@ export class UserService {
         }
 
         const token = jwt.sign(
-            { sub: user.userId.toString() },
-            process.env.JWT_SECRET as string
+            // { sub: user.userId.toString() },
+            { sub: user.userId },
+            // process.env.JWT_SECRET as string
+            "secret"
         );
 
         return {
