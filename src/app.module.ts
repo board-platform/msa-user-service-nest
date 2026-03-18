@@ -12,6 +12,5 @@ import { HealthCheckModule } from './health-check/health-check.module';
 
 @Module({
   imports: [ClientModule, ConfigModule.forRoot({ isGlobal: true }), KafkaModule, HealthCheckModule, UserModule],
-  providers: [],
 })
 export class AppModule {}

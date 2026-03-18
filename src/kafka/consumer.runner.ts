@@ -16,11 +16,13 @@ export class KafkaConsumerRunner implements OnModuleInit {
     });
 
     await this.consumer.run({
-      eachMessage: async ({ message }) => {
+      eachMessage: async ({ message, topic }) => {
         const value = message.value?.toString();
         if (!value) return;
 
-        await this.boardCreatedEventConsumer.consume(value);
+        if (topic === 'board.created') {
+          await this.boardCreatedEventConsumer.consume(value);
+        }
       },
     });
   }
