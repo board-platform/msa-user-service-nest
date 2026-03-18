@@ -3,7 +3,6 @@ from anthropic import Anthropic
 
 from github_client import (
     get_pr_files,
-    create_line_comment,
     upsert_pr_comment,
 )
 from review_policy import should_skip_file, exceed_diff_limit
@@ -37,7 +36,7 @@ for file in files:
     if should_skip_file(filename, diff, file):
         continue
 
-    if exceed_diff_limit(current_total, len(diff)):
+    if exceed_diff_limit(current_total, len(diff or "")):
         partial = True
         break
 
@@ -52,16 +51,22 @@ for file in files:
 
     reviewed_count += 1
 
+    file_comments = []
+
     for item in parsed:
-        create_line_comment(
-            repo,
-            pr_number,
-            headers,
-            commit_id,
-            filename,
-            item["line"],
-            item["comment"]
+        line = item.get("line")
+        comment = item.get("comment")
+
+        if not line or not comment:
+            continue
+
+        file_comments.append(f"- line {line}: {comment}")
+
+    if file_comments:
+        reviews.append(
+            f"### 📄 {filename}\n" + "\n".join(file_comments)
         )
+
 
 # 최종 메시지
 if reviews:

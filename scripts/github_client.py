@@ -8,21 +8,6 @@ def get_pr_files(repo, pr_number, headers):
     return res.json()
 
 
-def create_line_comment(repo, pr_number, headers, commit_id, filename, line, comment):
-    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/comments"
-
-    data = {
-        "body": comment,
-        "commit_id": commit_id,
-        "path": filename,
-        "position": line,
-    }
-
-    res = requests.post(url, headers=headers, json=data)
-    if res.status_code not in (200, 201):
-        print("Failed to create review comment:", res.text)
-
-
 def upsert_pr_comment(repo, pr_number, headers, body, tag):
     comments_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
     res = requests.get(comments_url, headers=headers)
