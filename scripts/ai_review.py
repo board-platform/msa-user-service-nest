@@ -4,6 +4,7 @@ from anthropic import Anthropic
 from github_client import (
     get_pr_files,
     upsert_pr_comment,
+    build_file_review
 )
 from review_policy import should_skip_file, exceed_diff_limit
 from review_service import review_file_with_ai, parse_review
@@ -45,28 +46,13 @@ for file in files:
     review = review_file_with_ai(client, filename, diff[:1500])
     parsed = parse_review(review)
 
-    if not parsed:
-        reviews.append(f"### 📄 {filename}\n{review}")
-        continue
+    result = build_file_review(filename, parsed, review)
 
-    reviewed_count += 1
+    if result:
+        reviews.append(result)
 
-    file_comments = []
-
-    for item in parsed:
-        line = item.get("line")
-        comment = item.get("comment")
-
-        if not line or not comment:
-            continue
-
-        file_comments.append(f"- line {line}: {comment}")
-
-    if file_comments:
-        reviews.append(
-            f"### 📄 {filename}\n" + "\n".join(file_comments)
-        )
-
+    if parsed:
+        reviewed_count += 1
 
 # 최종 메시지
 if reviews:

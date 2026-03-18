@@ -27,3 +27,24 @@ def upsert_pr_comment(repo, pr_number, headers, body, tag):
         requests.patch(update_url, headers=headers, json=data)
     else:
         requests.post(comments_url, headers=headers, json=data)
+
+
+def build_file_review(filename, parsed, raw_review):
+    if not parsed:
+        return f"### 📄 {filename}\n{raw_review}"
+
+    file_comments = []
+
+    for item in parsed:
+        line = item.get("line")
+        comment = item.get("comment")
+
+        if not line or not comment:
+            continue
+
+        file_comments.append(f"- line {line}: {comment}")
+
+    if not file_comments:
+        return None
+
+    return f"### 📄 {filename}\n" + "\n".join(file_comments)
